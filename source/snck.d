@@ -16,6 +16,8 @@ struct Snck(R) if (isInputRange!R) {
     alias E = ElementType!R;
     size_t count = 0;
     size_t nblocks = 10;
+    double minsecs = 0.1;
+    Duration previous;
 
     this(R range) {
         this.range = range;
@@ -34,6 +36,12 @@ struct Snck(R) if (isInputRange!R) {
     void popFront() {
         range.popFront;
         ++count;
+
+        // prevent too frequent message
+        auto now = watch.peek;
+        auto secs = (now - previous).total!"nsecs" * 1e-9;
+        if (!range.empty && secs < minsecs) return;
+
         file.write("\r");
 
         // display percentage
@@ -62,23 +70,23 @@ struct Snck(R) if (isInputRange!R) {
 
         // display elapsed time
         file.writef!" [";
-        auto elapsed = watch.peek;
-        this.printTime(elapsed);
+        this.printTime(now);
         // display estimated amount of remaining time
         static if (hasLength!R) {
-            auto fps = 1e9 * count / elapsed.total!"nsecs";
+            auto fps = 1e9 * count / now.total!"nsecs";
             auto remained = dur!"seconds"(to!long(range.length.to!double / fps));
             file.write("<");
             this.printTime(remained);
             file.writef!", %.2fit/s"(fps);
         }
         file.writef!"]";
-        file.writef("\n");
+        // file.writef("\n");
 
         if (this.range.empty) {
             file.writef("\n");
         }
-        // file.flush();
+        file.flush();
+        this.previous = now;
     }
 
     void printTime(Duration d) {
@@ -100,7 +108,12 @@ auto snck(R)(R range) {
 unittest
 {
     import core.thread;
+    import std.range;
     foreach (i; [1, 2, 3].snck) {
-        Thread.sleep(dur!"seconds"(i));
+        Thread.sleep(dur!"msecs"(i * 300));
+    }
+
+    foreach (i; iota(100).snck) {
+        Thread.sleep(dur!"msecs"(10));
     }
 }
