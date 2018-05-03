@@ -1,0 +1,9 @@
+{
+	"name": "snck",
+	"authors": [
+		"Shigeki Karita"
+	],
+	"description": "progress display",
+	"copyright": "Copyright © 2018, Shigeki Karita",
+	"license": "BSL-1.0"
+}
