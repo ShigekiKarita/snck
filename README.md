@@ -23,3 +23,8 @@ this code prints progress of foreach into stderr as follows:
  66%: 2/3|███████   | [00:02<00:01, 1.00it/s]
 100%: 3/3|██████████| [00:03<00:00, 1.00it/s]
 ```
+
+## TODO
+
+- support types using `opApply`
+- add unit tests
