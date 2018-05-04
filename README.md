@@ -1,5 +1,7 @@
 # snck
 
+[![Dub version](https://img.shields.io/dub/v/snck.svg)](https://code.dlang.org/packages/snck)
+
 `snck` is a port of [tdqm](https://github.com/tqdm/tqdm) in D.
 `snck` is an acronym of "Shi-N-Cho-Ku" that means "progress" in Japanese.
 
