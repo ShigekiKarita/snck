@@ -32,7 +32,6 @@ you can tweak any configurations in
 
 ```d
 struct SnckConf {
-    File file;
     double minSeconds = 0.1;
     bool showPercent = true;
     bool showCounter = true;
@@ -54,7 +53,7 @@ SnckConf conf = {
   eraseLast: false   // do not erase finished last stats
 };
 
-foreach (i; iota(2000).snck(conf)) {
+foreach (i; iota(2000).snck(conf).output(stdout)) {
   Thread.sleep(dur!"msecs"(1));
 }
 ```

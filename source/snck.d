@@ -4,7 +4,6 @@ import std.range.primitives : isInputRange;
 import std.stdio : File, stderr;
 
 struct SnckConf {
-    File file;
     double minSeconds = 0.1;
     bool showPercent = true;
     bool showCounter = true;
@@ -14,14 +13,6 @@ struct SnckConf {
     bool showETA = true;
     bool showSpeed = true;
     bool eraseLast = true;
-
-    @property
-    ref fd() {
-        if (!this.file.isOpen) {
-            this.file = stderr;
-        }
-        return this.file;
-    }
 
     @property
     bool showAnyTimeStats() {
@@ -41,11 +32,27 @@ struct Snck(R) if (isInputRange!R) {
     size_t count = 0;
     Duration previous;
     SnckConf conf;
+    File file;
+
     enum rewriteLine = "\r\033[K";
 
     this(R range) {
         this.range = range;
         this.watch.start();
+    }
+
+    @property
+    ref output() {
+        if (!this.file.isOpen) {
+            this.file = stderr;
+        }
+        return this.file;
+    }
+
+    @property
+    ref output(File f) {
+        this.file = f;
+        return this;
     }
 
     @property empty() const {
@@ -65,7 +72,7 @@ struct Snck(R) if (isInputRange!R) {
             auto now = watch.peek;
             auto secs = (now - previous).total!"nsecs" * 1e-9;
             if (!range.empty && secs < minSeconds) return;
-            fd.write(this.rewriteLine);
+            output.write(this.rewriteLine);
 
             static if (hasLength!R) {
                 auto total = count + range.length;
@@ -73,47 +80,47 @@ struct Snck(R) if (isInputRange!R) {
 
             if (showPercent) {
                 static if (hasLength!R) {
-                    fd.writef!"%3d%s: "(100 * count / total, "%");
+                    output.writef!"%3d%s: "(100 * count / total, "%");
                 }
-                fd.writef!"%d"(this.count);
+                output.writef!"%d"(this.count);
                 static if (hasLength!R) {
-                    fd.writef!"/%d"(total);
+                    output.writef!"/%d"(total);
                 }
             }
 
             if (showProgressBar) {
                 static if (hasLength!R) {
-                    fd.write("|");
+                    output.write("|");
                     auto passed = barBlocks * count / total;
                     foreach (i; 0 .. barBlocks) {
                         if (i <= passed) {
-                            fd.write("█");
+                            output.write("█");
                         } else {
-                            fd.write(" ");
+                            output.write(" ");
                         }
                     }
-                    fd.write("|");
+                    output.write("|");
                 }
             }
 
             if (showAnyTimeStats) {
-                fd.writef!" [";
+                output.writef!" [";
                 if (showElapsedTime) this.printTime(now);
 
                 static if (hasLength!R) {
                     auto fps = 1e9 * count / now.total!"nsecs";
                     if (showETA) {
                         auto remained = dur!"seconds"(to!long(range.length.to!double / fps));
-                        fd.write("<");
+                        output.write("<");
                         this.printTime(remained);
                     }
-                    if (showSpeed) fd.writef!", %.2fit/s"(fps);
+                    if (showSpeed) output.writef!", %.2fit/s"(fps);
                 }
-                fd.writef!"]";
+                output.writef!"]";
             }
 
             if (this.range.empty) {
-                fd.writef(eraseLast ? this.rewriteLine : "\n");
+                output.writef(eraseLast ? this.rewriteLine : "\n");
             }
             this.previous = now;
         }
@@ -122,9 +129,9 @@ struct Snck(R) if (isInputRange!R) {
     void printTime(Duration d) {
         auto s = d.split!("hours", "minutes", "seconds");
         if (s.hours > 0) {
-            this.conf.fd.writef!"%02d"(s.hours);
+            this.output.writef!"%02d"(s.hours);
         } else {
-            this.conf.fd.writef!"%02d:%02d"(s.minutes, s.seconds);
+            this.output.writef!"%02d:%02d"(s.minutes, s.seconds);
         }
     }
 }
@@ -145,6 +152,7 @@ unittest
 {
     import core.thread;
     import std.range;
+    import std.stdio;
     foreach (i; [1, 2, 3].snck) {
         Thread.sleep(dur!"msecs"(i * 300));
     }
@@ -158,7 +166,7 @@ unittest
         minSeconds: 0.001,
         eraseLast: false,
     };
-    foreach (i; iota(2000).snck(conf)) {
+    foreach (i; iota(2000).snck(conf).output(stdout)) {
         Thread.sleep(dur!"msecs"(1));
     }
 }
