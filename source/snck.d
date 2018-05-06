@@ -41,6 +41,11 @@ struct Snck(R) if (isInputRange!R) {
         this.watch.start();
     }
 
+    ref set(string attr, T)(T val) {
+        mixin("this.conf." ~ attr ~ " = val;");
+        return this;
+    }
+
     @property
     ref output() {
         if (!this.file.isOpen) {
@@ -161,6 +166,7 @@ unittest
         Thread.sleep(dur!"msecs"(1));
     }
 
+    // using struct
     SnckConf conf = {
         barBlocks: 20,
         minSeconds: 0.001,
@@ -168,5 +174,29 @@ unittest
     };
     foreach (i; iota(2000).snck(conf).output(stdout)) {
         Thread.sleep(dur!"msecs"(1));
+    }
+
+    // using .set
+    foreach (i; iota(2000).snck
+             .set!"barBlocks"(20)
+             .set!"minSeconds"(0.001)
+             .set!"eraseLast"(false)
+             .output(stdout)) {
+        Thread.sleep(dur!"msecs"(1));
+    }
+}
+
+unittest {
+    // multi thread (it runs unreasonably fast)
+    import std.stdio;
+    import std.parallelism;
+    import std.range;
+    import core.thread;
+    writeln("two thread test");
+    auto pool = new TaskPool(2);
+    scope(exit) pool.stop();
+
+    foreach (i; iota(10).snck.set!"eraseLast"(false)) {
+        pool.put(task!(Thread.sleep)(dur!"msecs"(1000)));
     }
 }

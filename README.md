@@ -49,6 +49,7 @@ struct SnckConf {
 for example
 
 ```d
+// using struct
 SnckConf conf = {
   barBlocks: 20,     // more long progress bar
   minSeconds: 0.001, // more frequent updates
@@ -56,6 +57,15 @@ SnckConf conf = {
 };
 
 foreach (i; iota(2000).snck(conf).output(stdout)) {
+  Thread.sleep(dur!"msecs"(1));
+}
+
+// using .set
+foreach (i; iota(2000).snck
+  .set!"barBlocks"(20)
+  .set!"minSeconds"(0.001)
+  .set!"eraseLast"(true)
+  .output(stdout)) {
   Thread.sleep(dur!"msecs"(1));
 }
 ```
